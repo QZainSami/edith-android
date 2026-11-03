@@ -1,0 +1,39 @@
+# Local IDE and build state
+.idea/
+.gradle/
+.kotlin/
+*.iml
+local.properties
+**/build/
+.externalNativeBuild/
+.cxx/
+captures/
+*.apk
+*.aab
+*.apks
+*.hprof
+*.log
+
+# Private configuration and signing keys
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+keystore.properties
+signing.properties
+secrets.properties
+
+# OS files and backups
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.bak
+*.tmp
+*~
+
+# Gradle wrapper scripts/JAR and version catalog are intentionally tracked.
