@@ -48,7 +48,9 @@ class MainActivity : ComponentActivity() {
                         while (true) { model.autoRefresh(); delay(750) }
                     }
                 }
-                EdithApp(model)
+                var booting by rememberSaveable { mutableStateOf(true) }
+                LaunchedEffect(Unit) { delay(1500); booting = false }
+                if(booting) BootScreen() else EdithApp(model)
             }
         }
     }
@@ -177,6 +179,7 @@ private fun ControlScreen(model: EdithViewModel) {
             Text("Requested screen: ${panel?.optString("mode") ?: "unknown"}")
             Text("Sleep keeps EDITH connected and shows the clock and weather. An active timer takes over the display.", style = MaterialTheme.typography.bodySmall)
         } }
+        item { TimeTools(model) }
         item { Panel("Focus timer") {
             Text(when { timerMs < 0 -> "No timer"; timerMs == 0L -> "Time up ✦"; else -> {
                 val s = (timerMs + 999) / 1000

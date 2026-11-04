@@ -181,6 +181,23 @@ class EdithViewModel(application: Application) : AndroidViewModel(application) {
     fun cancelTimer() = action { config ->
         acceptDevice(call(config, "/api/timer", JSONObject().put("seconds", 0)), "Timer dismissed.")
     }
+    fun stopwatch(command: String) = action { config ->
+        acceptDevice(call(config, "/api/stopwatch", JSONObject().put("action", command)), "Stopwatch: $command.")
+    }
+    fun setAlarm(hour: Int, minute: Int) {
+        val next = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY,hour); set(java.util.Calendar.MINUTE,minute)
+            set(java.util.Calendar.SECOND,0); set(java.util.Calendar.MILLISECOND,0)
+            if(timeInMillis <= System.currentTimeMillis()) add(java.util.Calendar.DAY_OF_YEAR,1)
+        }
+        action { config ->
+            acceptDevice(call(config,"/api/alarm",JSONObject().put("at",next.timeInMillis/1000).put("utc_offset",offset())),
+                "One-time alarm saved for ${java.text.SimpleDateFormat("EEE HH:mm",java.util.Locale.getDefault()).format(next.time)}.")
+        }
+    }
+    fun dismissAlarm() = action { config ->
+        acceptDevice(call(config,"/api/alarm",JSONObject().put("at",JSONObject.NULL)), "Alarm dismissed.")
+    }
     fun searchCity(query: String) {
         if(query.trim().length !in 2..80) { error = "Enter a city name between 2 and 80 characters."; return }
         action { config ->

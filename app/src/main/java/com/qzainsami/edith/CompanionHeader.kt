@@ -64,20 +64,23 @@ fun CompanionHeader(model: EdithViewModel) {
         var tick by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
         val received = remember(panel) { SystemClock.elapsedRealtime() }
         LaunchedEffect(Unit) { while(true) { tick = SystemClock.elapsedRealtime(); delay(100) } }
-        val speaking = espOnline && !dashboard && !timer &&
+        val alarmMs=panel?.optLong("alarm_remaining_ms",-1)?:-1
+        val alarmDue=alarmMs>=0 && alarmMs<=tick-received
+        val stopwatch=requestedMode=="stopwatch"
+        val speaking = espOnline && !dashboard && !timer && !stopwatch && !alarmDue &&
             (panel?.optLong("speech_remaining_ms", 0) ?: 0) > tick - received
         Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp)).padding(12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            if(espOnline && (timer || dashboard)) DashboardPreview(panel, timer, tick - received)
+            if(espOnline && (timer || dashboard || stopwatch || alarmDue)) DashboardPreview(panel, timer, tick - received,stopwatch,alarmDue)
             else OledFace(mood, espOnline, speaking, tick)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text("EDITH display", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
-                Text(when { !espOnline -> "Unavailable"; timer -> "Timer"; dashboard -> "Sleep dashboard"; else -> mood.replaceFirstChar { it.uppercase() } },
+                Text(when { !espOnline -> "Unavailable"; alarmDue->"Alarm"; timer -> "Timer"; stopwatch->"Stopwatch"; dashboard -> "Sleep dashboard"; else -> mood.replaceFirstChar { it.uppercase() } },
                     color = if(espOnline) MaterialTheme.colorScheme.primary else Color(0xFFFF8585), fontSize = 13.sp)
                 Text(when {
                     !espOnline -> "Waiting for ESP32"
                     syncing -> "Syncing with OLED…"
-                    timer || dashboard -> "Display preview"
+                    timer || dashboard || stopwatch || alarmDue -> "Display preview"
                     speaking -> "Speaking animation"
                     else -> "Reported expression"
                 }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -87,12 +90,12 @@ fun CompanionHeader(model: EdithViewModel) {
 }
 
 @Composable
-private fun DashboardPreview(panel: JSONObject?, timer: Boolean, elapsed: Long) {
+private fun DashboardPreview(panel: JSONObject?, timer: Boolean, elapsed: Long, stopwatch: Boolean, alarmDue: Boolean) {
     val initialRemaining = remember(panel?.optString("timer_id")) {
         (panel?.optLong("timer_remaining_ms",1) ?: 1).coerceAtLeast(1)
     }
     Canvas(Modifier.size(128.dp,64.dp).background(Color.Black,RoundedCornerShape(8.dp))
-        .semantics { contentDescription = if(timer) "EDITH countdown preview" else "EDITH clock and weather dashboard preview" }) {
+        .semantics { contentDescription = when{alarmDue->"EDITH alarm preview";timer->"EDITH countdown preview";stopwatch->"EDITH stopwatch preview";else->"EDITH clock and weather dashboard preview"} }) {
         withTransform({ scale(size.width/128f,size.height/64f,Offset.Zero) }) {
             val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
                 color = android.graphics.Color.WHITE
@@ -102,7 +105,26 @@ private fun DashboardPreview(panel: JSONObject?, timer: Boolean, elapsed: Long) 
                 paint.textSize = font
                 drawContext.canvas.nativeCanvas.drawText(value,x,y,paint)
             }
-            if(timer) {
+            if(alarmDue) {
+                drawRoundRect(Color.White,Offset(3f,3f),Size(122f,58f),CornerRadius(7f),style=Stroke(1f))
+                text("ALARM",44f,17f,9f)
+                drawCircle(Color.White,9f,Offset(64f,32f),style=Stroke(1.5f))
+                drawLine(Color.White,Offset(64f,26f),Offset(64f,33f),1.5f)
+                drawLine(Color.White,Offset(64f,33f),Offset(70f,35f),1.5f)
+                text("DISMISS IN THE APP",12f,56f,6f)
+            } else if(stopwatch && !timer) {
+                val running=panel?.optBoolean("stopwatch_running")==true
+                val ms=((panel?.optLong("stopwatch_elapsed_ms",0)?:0)+if(running)elapsed else 0).coerceAtMost(359999990)
+                val seconds=ms/1000
+                val value=if(seconds>=3600) java.lang.String.format(java.util.Locale.ROOT,"%02d:%02d:%02d",seconds/3600,seconds/60%60,seconds%60)
+                    else java.lang.String.format(java.util.Locale.ROOT,"%02d:%02d",seconds/60,seconds%60)
+                text("STOPWATCH",36f,11f,7f)
+                val font=if(seconds>=3600)20f else 29f
+                paint.textSize=font;text(value,(128-paint.measureText(value))/2,39f,font)
+                text(java.lang.String.format(java.util.Locale.ROOT,".%02d",ms/10%100),56f,49f,8f)
+                drawLine(Color.White,Offset(15f,54f),Offset(113f,54f),1f)
+                text(if(running)"RUNNING" else "PAUSED",44f,63f,6f)
+            } else if(timer) {
                 val remaining = ((panel?.optLong("timer_remaining_ms",0) ?: 0)-elapsed).coerceAtLeast(0)
                 val seconds = (remaining+999)/1000
                 val value = if(seconds >= 3600) java.lang.String.format(java.util.Locale.ROOT,"%02d:%02d:%02d",seconds/3600,seconds/60%60,seconds%60)

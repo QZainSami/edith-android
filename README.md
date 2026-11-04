@@ -222,3 +222,13 @@ Replace the remote URL. If a local repository/remote already exists, inspect `gi
 ## 📄 License
 
 [MIT](LICENSE), copyright 2026 QZainSami. Dependencies and models retain their own licenses.
+
+## ⚡ Startup and time tools
+
+Android now plays a brief robotic scan-line/glitch intro when its activity starts (rotation retains completion). **Controls** includes a stopwatch and a one-time alarm alongside the timer. Start/resume, pause or reset the stopwatch; its OLED screen shows minutes/seconds and centiseconds, or hours for long sessions. Limit is 99:59:59.99. A stopped/paused stopwatch keeps its elapsed time until reset.
+
+Choose an alarm time using the phone's time picker. It schedules the next occurrence in the phone's local time zone; a passed time means tomorrow. Cancel before it fires or dismiss afterward. The preview shows the stopwatch and alarm display. Due alarms take priority, followed by timers, then the selected stopwatch or dashboard/face.
+
+Restart the updated backend and upload the matching middleware before using these features. State belongs to the backend/ESP32, not an Android background service. The ESP32 must remain powered and needs a backend connection after a restart to restore state. Alarms currently provide an OLED visual alert only, with no sound or Android notification while the app is closed.
+
+The new tools have backend tests and Kotlin/Compose source compilation checks. Packaged Android/firmware builds and physical verification of these new features remain pending.
