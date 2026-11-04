@@ -2,6 +2,7 @@ package com.qzainsami.edith
 
 import android.os.SystemClock
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +15,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -22,6 +24,7 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -69,14 +72,15 @@ fun CompanionHeader(model: EdithViewModel) {
         val stopwatch=requestedMode=="stopwatch"
         val speaking = espOnline && !dashboard && !timer && !stopwatch && !alarmDue &&
             (panel?.optLong("speech_remaining_ms", 0) ?: 0) > tick - received
-        Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp)).padding(12.dp),
+        Row(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(EdithPanel,Color(0xFF142F36))), RoundedCornerShape(20.dp))
+            .border(1.dp,EdithLine,RoundedCornerShape(20.dp)).padding(12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             if(espOnline && (timer || dashboard || stopwatch || alarmDue)) DashboardPreview(panel, timer, tick - received,stopwatch,alarmDue)
             else OledFace(mood, espOnline, speaking, tick)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("EDITH display", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                Text("LIVE DISPLAY",fontFamily=FontFamily.Monospace,fontSize=10.sp,letterSpacing=1.sp,color=EdithCyan)
                 Text(when { !espOnline -> "Unavailable"; alarmDue->"Alarm"; timer -> "Timer"; stopwatch->"Stopwatch"; dashboard -> "Sleep dashboard"; else -> mood.replaceFirstChar { it.uppercase() } },
-                    color = if(espOnline) MaterialTheme.colorScheme.primary else Color(0xFFFF8585), fontSize = 13.sp)
+                    color = if(espOnline) MaterialTheme.colorScheme.primary else Color(0xFFFF8585), fontSize = 15.sp,fontWeight=FontWeight.SemiBold)
                 Text(when {
                     !espOnline -> "Waiting for ESP32"
                     syncing -> "Syncing with OLED…"
@@ -162,8 +166,9 @@ private fun DashboardPreview(panel: JSONObject?, timer: Boolean, elapsed: Long, 
 @Composable
 private fun HealthLight(name: String, state: String, online: Boolean, modifier: Modifier) {
     val color = if(online) Color(0xFFC9F575) else Color(0xFFFF8585)
-    Column(modifier.background(MaterialTheme.colorScheme.surface, RoundedCornerShape(10.dp)).padding(8.dp)) {
-        Text(name, style = MaterialTheme.typography.labelMedium)
+    Column(modifier.background(color.copy(alpha=.055f),RoundedCornerShape(12.dp))
+        .border(1.dp,color.copy(alpha=.2f),RoundedCornerShape(12.dp)).padding(8.dp)) {
+        Text(name.uppercase(),fontFamily=FontFamily.Monospace,fontSize=10.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
         Text("● $state", color = color, style = MaterialTheme.typography.labelSmall, maxLines = 1)
     }
 }

@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,6 +21,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -38,11 +41,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val model = ViewModelProvider(this)[EdithViewModel::class.java]
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme(
-                primary = Color(0xFFC9F575), onPrimary = Color(0xFF192312),
-                background = Color(0xFF101720), surface = Color(0xFF192331),
-                surfaceVariant = Color(0xFF253347)
-            )) {
+            EdithTheme {
                 LaunchedEffect(model) {
                     lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                         while (true) { model.autoRefresh(); delay(750) }
@@ -60,21 +59,27 @@ class MainActivity : ComponentActivity() {
 private fun EdithApp(model: EdithViewModel) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val labels = listOf("Chat", "Controls", "Settings")
-    val glyphs = listOf("✦", "◉", "⚙")
     Scaffold(
         bottomBar = {
-            NavigationBar { labels.forEachIndexed { index, label ->
+            Surface(Modifier.padding(horizontal=16.dp,vertical=6.dp),shape=RoundedCornerShape(24.dp),
+                color=EdithPanel,border=BorderStroke(1.dp,EdithLine)) {
+            NavigationBar(containerColor=Color.Transparent,tonalElevation=0.dp) { labels.forEachIndexed { index, label ->
                 NavigationBarItem(selected = tab == index, onClick = { tab = index },
-                    icon = { Text(glyphs[index], fontSize = 22.sp) }, label = { Text(label) })
+                    colors=NavigationBarItemDefaults.colors(indicatorColor=Color(0xFF263B30),selectedTextColor=EdithLime),
+                    icon = { NavGlyph(index,tab==index) }, label = { Text(label) })
             } }
+            }
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).imePadding()) {
+        Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF0C1B28),EdithInk))).padding(padding).imePadding()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Column { Text("EDITH", fontWeight = FontWeight.Bold, fontSize = 26.sp)
-                    Text("Your little desktop companion", style = MaterialTheme.typography.labelMedium) }
-                TextButton(onClick = model::refresh, enabled = !model.busy && !model.refreshing) { Text("Refresh") }
+                Row(Modifier.weight(1f),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+                    EdithLogo(Modifier.size(46.dp))
+                    Column { Text("EDITH",fontFamily=FontFamily.Monospace,letterSpacing=4.sp,fontWeight=FontWeight.Bold,fontSize=23.sp)
+                        Text("A LITTLE COMPANION",fontSize=9.sp,letterSpacing=1.sp,color=EdithCyan) }
+                }
+                TextButton(onClick = model::refresh, enabled = !model.busy && !model.refreshing) { Text("↻ Refresh",fontSize=12.sp) }
             }
             CompanionHeader(model)
             model.error?.let { Text(it, Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -100,25 +105,31 @@ private fun ColumnScope.ChatScreen(model: EdithViewModel) {
     }
     LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState,
         contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        if(model.chat.isEmpty()) item { Panel("Say hello ✦") {
-            Text("Chat with EDITH, or type a command like ‘EDITH sleep’ or ‘set a timer for 5 minutes’.")
-            Text("Voice and microphone features will come later.", style = MaterialTheme.typography.bodySmall)
+        if(model.chat.isEmpty()) item { Panel("Hey, I'm EDITH ✦") {
+            Text("A little company. A little curiosity. What's on your mind?",style=MaterialTheme.typography.bodyLarge)
+            Text("TRY A QUICK COMMAND",fontFamily=FontFamily.Monospace,fontSize=10.sp,color=EdithCyan)
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick={model.send("EDITH sleep")},enabled=!model.busy){Text("Sleep",fontSize=12.sp)}
+                OutlinedButton(onClick={model.send("set a timer for 5 minutes")},enabled=!model.busy){Text("5-min timer",fontSize=12.sp)}
+            }
         } }
         items(model.chat) { line ->
             Column(Modifier.fillMaxWidth(), horizontalAlignment = if(line.user) Alignment.End else Alignment.Start) {
-                Column(Modifier.widthIn(max = 340.dp).background(
-                    if(line.user) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                    RoundedCornerShape(18.dp)).padding(14.dp)) {
-                    Text(if(line.user) "You" else "EDITH · ${line.source}", fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelMedium)
+                Surface(Modifier.widthIn(max=340.dp),color=if(line.user)Color(0xFF263C2D) else EdithPanel,
+                    border=BorderStroke(1.dp,if(line.user)Color(0xFF3D5740) else EdithLine),
+                    shape=RoundedCornerShape(topStart=20.dp,topEnd=20.dp,bottomStart=if(line.user)20.dp else 5.dp,bottomEnd=if(line.user)5.dp else 20.dp)) {
+                Column(Modifier.padding(14.dp)) {
+                    Text(if(line.user) "YOU" else if(line.source=="rules")"EDITH · RULES" else "EDITH",color=if(line.user)EdithLime else EdithCyan,
+                        fontFamily=FontFamily.Monospace,fontWeight=FontWeight.Bold,style=MaterialTheme.typography.labelSmall)
                     Spacer(Modifier.height(5.dp)); Text(line.text)
+                }
                 }
             }
         }
         if(model.busy) item { Text("EDITH is working…", style = MaterialTheme.typography.bodySmall) }
     }
-    Text(model.notice, Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 4)
+    if(model.error!=null || model.status==null || model.chat.lastOrNull()?.source=="rules") Text(model.notice, Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(value = draft, onValueChange = { if(it.length <= 2000) draft = it },
@@ -132,12 +143,7 @@ private fun ColumnScope.ChatScreen(model: EdithViewModel) {
 
 @Composable
 private fun Panel(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            content()
-        }
-    }
+    SectionCard(title,content)
 }
 
 @Composable
@@ -159,9 +165,13 @@ private fun ControlScreen(model: EdithViewModel) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item { Text(model.notice, style = MaterialTheme.typography.bodySmall) }
         item { Panel("Faces") {
+            val report=model.status?.optJSONObject("device")?.optJSONObject("response")
+            val selectedFace=model.previewMood ?: if(report?.optBoolean("pending")==true)report.optString("desired_mood") else report?.optString("mood")
             listOf(listOf("normal", "happy", "sad", "angry"), listOf("sleepy", "curious", "thinking", "uwu")).forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     row.forEach { mood -> OutlinedButton(onClick = { model.mood(mood) }, enabled = enabled,
+                        colors=ButtonDefaults.outlinedButtonColors(containerColor=if(selectedFace==mood)Color(0xFF293F2C) else Color.Transparent,
+                            contentColor=if(selectedFace==mood)EdithLime else MaterialTheme.colorScheme.onSurfaceVariant),
                         modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp)) {
                         Text(mood, fontSize = 11.sp, maxLines = 1)
                     } }
@@ -185,7 +195,7 @@ private fun ControlScreen(model: EdithViewModel) {
                 val s = (timerMs + 999) / 1000
                 if(s >= 3600) String.format(Locale.ROOT, "%02d:%02d:%02d", s/3600, s/60%60, s%60)
                 else String.format(Locale.ROOT, "%02d:%02d", s/60, s%60)
-            } }, fontSize = 36.sp, fontWeight = FontWeight.Light)
+            } }, fontSize = 36.sp, fontWeight = FontWeight.Light,fontFamily=FontFamily.Monospace)
             if(model.status == null) Text("Countdown unavailable until the backend reconnects.", style = MaterialTheme.typography.bodySmall)
             OutlinedTextField(value = duration, onValueChange = { if(it.length <= 5 && it.all(Char::isDigit)) duration = it },
                 label = { Text("Duration") }, singleLine = true, modifier = Modifier.fillMaxWidth(),

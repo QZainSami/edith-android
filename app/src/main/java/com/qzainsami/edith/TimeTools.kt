@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -36,12 +37,10 @@ fun TimeTools(model: EdithViewModel) {
         }
     }
     Column(verticalArrangement=Arrangement.spacedBy(16.dp)) {
-        Card(shape=RoundedCornerShape(22.dp)) {
-            Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                Text("◷ Stopwatch",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleMedium)
+        SectionCard("Stopwatch") {
                 val seconds=elapsed/1000
                 Text(if(seconds>=3600) String.format(Locale.ROOT,"%02d:%02d:%02d",seconds/3600,seconds/60%60,seconds%60)
-                    else String.format(Locale.ROOT,"%02d:%02d",seconds/60,seconds%60),fontSize=40.sp,fontWeight=FontWeight.Light)
+                    else String.format(Locale.ROOT,"%02d:%02d",seconds/60,seconds%60),fontSize=40.sp,fontWeight=FontWeight.Light,fontFamily=FontFamily.Monospace)
                 Text(String.format(Locale.ROOT,".%02d   %s",elapsed/10%100,if(running)"RUNNING" else "PAUSED"),
                     color=MaterialTheme.colorScheme.primary,style=MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -53,11 +52,8 @@ fun TimeTools(model: EdithViewModel) {
                 TextButton(onClick={model.screen("stopwatch")},enabled=enabled){Text("Show stopwatch on OLED")}
                 Text("Continues on the backend/ESP32 when the app closes. Pausing keeps elapsed time; reset clears it. Limit: 99:59:59.99.",style=MaterialTheme.typography.bodySmall)
                 if(!supported)Text("Restart the updated backend to enable stopwatch and alarms.",color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
-            }
         }
-        Card(shape=RoundedCornerShape(22.dp)) {
-            Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                Text("◴ One-time alarm",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleMedium)
+        SectionCard("One-time alarm") {
                 val at=state?.optLong("alarm_at",0)?:0
                 Text(when {
                     alarmRemaining==0L->"ALARM ✦"
@@ -73,7 +69,6 @@ fun TimeTools(model: EdithViewModel) {
                 OutlinedButton(onClick=model::dismissAlarm,enabled=enabled && alarmRemaining>=0,
                     modifier=Modifier.fillMaxWidth()){Text(if(alarmRemaining==0L)"Dismiss alarm" else "Cancel alarm")}
                 Text("Uses your phone's time zone. A past time schedules tomorrow. Visual alert on OLED until dismissed; no sound or Android background notification yet.",style=MaterialTheme.typography.bodySmall)
-            }
         }
     }
 }

@@ -1,5 +1,7 @@
 # 🤖 EDITH Android
 
+<p align="center"><img src="docs/edith-logo.svg" width="112" alt="EDITH: a lime OLED face in a cyan robot frame" /></p>
+
 A native **Kotlin + Jetpack Compose** companion app for EDITH: chat, expressive OLED faces, a clock/weather dashboard and focus timers.
 
 ```text
@@ -232,3 +234,30 @@ Choose an alarm time using the phone's time picker. It schedules the next occurr
 Restart the updated backend and upload the matching middleware before using these features. State belongs to the backend/ESP32, not an Android background service. The ESP32 must remain powered and needs a backend connection after a restart to restore state. Alarms currently provide an OLED visual alert only, with no sound or Android notification while the app is closed.
 
 The new tools have backend tests and Kotlin/Compose source compilation checks. Packaged Android/firmware builds and physical verification of these new features remain pending.
+
+## 🎒 Running from a university laptop
+
+The app connects to whichever computer is currently hosting the backend. Clone the backend separately on your laptop, create its private `.env` using the backend guide, and configure LM Studio on that laptop. If model and backend run on the same laptop, LMSTUDIO_URL stays `http://127.0.0.1:1234`; select the exact model ID available there. The phone still uses the backend's port 8000, not port 1234.
+
+From the laptop's backend folder:
+
+```bash
+uv sync --locked
+uv run python -m uvicorn app:app --host 0.0.0.0 --port 8000 --workers 1
+```
+
+For a direct connection on the same reachable Wi-Fi/hotspot, use `ip -4 address` / `ip route` on CachyOS, or `ipconfig` on Windows, to find the laptop's Wi-Fi IPv4 address. If it is `192.168.1.50`, enter `http://192.168.1.50:8000` in the app. That is an example, not an address to copy without checking your laptop. Allow the port only on a trusted network.
+
+If campus Wi-Fi isolates clients, or you want internet access, run cloudflared **on that laptop** in a second terminal:
+
+```bash
+cloudflared tunnel --url http://127.0.0.1:8000
+```
+
+Copy the HTTPS `trycloudflare.com` URL printed by cloudflared into the app. Use your existing backend web login. Quick Tunnel addresses change when restarted and stop working when the tunnel closes. Keep the laptop awake with LM Studio, backend and tunnel running. See [Cloudflare's guide](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/).
+
+The ESP32 must also reach this backend. Firmware still pointing at your desktop PC will not automatically follow the laptop. Configure its backend URL for the laptop LAN address, or the HTTPS tunnel with proper TLS certificate validation; preserve matching device tokens. Do not commit private configuration when switching machines.
+
+## 🎨 EDITH visual identity
+
+The app uses a navy/lime/cyan theme, a custom OLED-face logo, outlined instrument panels, active-face highlights, monochrome clock digits and compact chat bubbles. The same logo is used in the header, adaptive launcher icon, themed monochrome icon and Android launch screen. `docs/edith-logo.svg` is a scalable copy for documentation. No image downloads or new UI dependencies are required.

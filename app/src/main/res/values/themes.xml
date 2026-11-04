@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.EDITH" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.EDITH" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#09121B</item>
+        <item name="android:statusBarColor">#09121B</item>
+        <item name="android:navigationBarColor">#09121B</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:colorAccent">#C9F575</item>
+    </style>
 </resources>
