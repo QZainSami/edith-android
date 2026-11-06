@@ -201,6 +201,17 @@ private fun OledFace(mood: String, online: Boolean, speaking: Boolean, tick: Lon
                         linePath(ink, listOf(Offset(x,y),Offset(x+4,y),Offset(x,y+4),Offset(x+4,y+4)),1.3f)
                     }
                 }
+                "shy", "blush" -> {
+                    for(x in listOf(25f,81f)) {
+                        val p = Path().apply { moveTo(x,27f); quadraticTo(x+11,43f,x+22,27f) }
+                        drawPath(p,ink,style=Stroke(3f))
+                    }
+                }
+                "unknown" -> {
+                    eye(23f,26f,27f,11f); eye(78f,26f,27f,11f)
+                    drawLine(Color.Black,Offset(20f,23f),Offset(53f,29f),5f)
+                    drawLine(Color.Black,Offset(75f,29f),Offset(108f,23f),5f)
+                }
                 "happy", "uwu" -> {
                     for(x in listOf(23f,79f)) {
                         val path = Path().apply { moveTo(x,33f); quadraticTo(x+14,8f,x+28,33f) }
@@ -225,12 +236,22 @@ private fun OledFace(mood: String, online: Boolean, speaking: Boolean, tick: Lon
                 }
                 else -> { eye(22f); eye(78f) }
             }
+            if (mood in listOf("shy", "blush", "unknown")) {
+                for (x in listOf(19f,91f)) for(i in 0..2) {
+                    drawLine(ink,Offset(x+i*5,44f),Offset(x+i*5-2,49f),1.5f)
+                }
+            }
             when {
+                mood == "unknown" && !speaking -> {
+                    val p = Path().apply { moveTo(57f,52f); quadraticTo(65f,59f,73f,49f) }
+                    drawPath(p,ink,style=Stroke(2f))
+                }
+                mood == "shy" && !speaking -> drawCircle(ink,2f,Offset(64f,53f))
                 speaking -> {
                     val h = listOf(3f,7f,4f,9f,3f,6f)[((tick/110)%6).toInt()]
                     drawRoundRect(ink,Offset(56f,52f-h/2),Size(16f,h),CornerRadius(3f,3f),style=Stroke(2f))
                 }
-                mood == "uwu" -> linePath(ink,listOf(Offset(55f,49f),Offset(59f,55f),Offset(64f,50f),Offset(69f,55f),Offset(73f,49f)),2f)
+                mood in listOf("uwu", "blush") -> linePath(ink,listOf(Offset(55f,49f),Offset(59f,55f),Offset(64f,50f),Offset(69f,55f),Offset(73f,49f)),2f)
                 mood == "sad" || mood == "angry" -> {
                     val p = Path().apply { moveTo(56f,55f); quadraticTo(64f,47f,72f,55f) }
                     drawPath(p,ink,style=Stroke(2f))

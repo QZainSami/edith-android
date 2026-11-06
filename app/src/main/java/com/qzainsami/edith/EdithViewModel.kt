@@ -14,6 +14,7 @@ data class City(val name: String, val latitude: Double, val longitude: Double)
 
 class EdithViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("connection", 0)
+    private val credentials = CredentialStore(application)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var refreshJob: Job? = null
     private var refreshVersion = 0
@@ -28,8 +29,8 @@ class EdithViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var username by mutableStateOf(prefs.getString("username", "")!!)
         private set
-    // Kept only in memory, never preferences, saved state, logs or backups.
-    var password by mutableStateOf("")
+    // Restored from encrypted, device-bound storage after a process restart.
+    var password by mutableStateOf(credentials.load(address, username))
         private set
     var status by mutableStateOf<JSONObject?>(null)
         private set
@@ -47,6 +48,8 @@ class EdithViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var cities by mutableStateOf(listOf<City>())
         private set
+
+    init { if (prefs.contains("address")) refresh() }
 
     private fun connection() = Connection(address, username, password)
     private fun offset() = TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 60000
@@ -82,6 +85,7 @@ class EdithViewModel(application: Application) : AndroidViewModel(application) {
         try {
             val normalized = EdithApi.normalizeAddress(raw)
             require(!user.contains(':')) { "The username cannot contain a colon." }
+            credentials.save(normalized, user.trim(), pass)
             refreshVersion++
             refreshJob?.cancel()
             modelJob?.cancel()
@@ -91,7 +95,7 @@ class EdithViewModel(application: Application) : AndroidViewModel(application) {
             username = user.trim(); password = pass
             prefs.edit().putString("address", address).putString("username", username).apply()
             status = null; modelStatus = null; chat = emptyList(); cities = emptyList(); error = null
-            notice = "Connection saved. Password stays in memory until the app process closes."
+            notice = "Connection saved. Password is encrypted on this device."
             refresh()
         } catch (exc: Exception) { error = message(exc) }
     }

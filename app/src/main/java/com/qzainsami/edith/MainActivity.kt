@@ -167,7 +167,7 @@ private fun ControlScreen(model: EdithViewModel) {
         item { Panel("Faces") {
             val report=model.status?.optJSONObject("device")?.optJSONObject("response")
             val selectedFace=model.previewMood ?: if(report?.optBoolean("pending")==true)report.optString("desired_mood") else report?.optString("mood")
-            listOf(listOf("normal", "happy", "sad", "angry"), listOf("sleepy", "curious", "thinking", "uwu")).forEach { row ->
+            listOf(listOf("normal", "happy", "sad", "angry"), listOf("sleepy", "curious", "thinking", "uwu"), listOf("shy", "blush", "unknown")).forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     row.forEach { mood -> OutlinedButton(onClick = { model.mood(mood) }, enabled = enabled,
                         colors=ButtonDefaults.outlinedButtonColors(containerColor=if(selectedFace==mood)Color(0xFF293F2C) else Color.Transparent,
@@ -254,7 +254,7 @@ private fun SettingsScreen(model: EdithViewModel) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), enabled = enabled)
             Button(onClick = { model.saveConnection(address, username, password) }, enabled = enabled,
                 modifier = Modifier.fillMaxWidth()) { Text("Save & connect") }
-            Text("Address and username are saved on this phone. Password is kept only while the app process is alive. Enter it again after a cold start.", style = MaterialTheme.typography.bodySmall)
+            Text("Your password is saved encrypted on this phone using Android Keystore. Clear the password and save to forget it. Reinstalling or clearing app data removes it.", style = MaterialTheme.typography.bodySmall)
         } }
         item { Panel("Local setup") {
             if(!permissionGranted) {

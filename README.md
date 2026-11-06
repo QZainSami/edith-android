@@ -177,7 +177,7 @@ Windows builds, tests, emulator operation and real-phone-to-OLED operation have 
 
 ## 🔒 Privacy and local files
 
-- URL and username persist in app-private preferences. Password stays in memory and must be re-entered after a cold start.
+- URL and username persist in app-private preferences. Password is encrypted with an Android Keystore key and restored after an app restart. It is excluded from backups; clear the password field and save to forget it.
 - Chat stays in memory; clearing chat, switching backend or process termination discards it. Recent exchanges go to your configured backend/model.
 - Automatic checks start after connecting and pause on connection failure. Display checks are silent, do not shift the UI and continue during model replies. Model checks run separately. No background service is installed.
 - Debug builds permit HTTP only to local IPv4/localhost addresses for trusted development. HTTP is unencrypted. Release builds require HTTPS; certificate checks stay enabled and redirects are rejected.
