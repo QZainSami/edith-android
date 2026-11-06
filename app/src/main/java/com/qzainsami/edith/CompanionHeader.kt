@@ -148,16 +148,46 @@ private fun DashboardPreview(panel: JSONObject?, timer: Boolean, elapsed: Long, 
                 val date = java.util.Date(epoch)
                 val dateFormat = java.text.SimpleDateFormat("EEE dd MMM",java.util.Locale.ENGLISH).apply { timeZone=zone }
                 val timeFormat = java.text.SimpleDateFormat("HH:mm",java.util.Locale.ROOT).apply { timeZone=zone }
-                text(dateFormat.format(date),4f,10f,7f)
-                drawLine(Color.White,Offset(0f,13f),Offset(128f,13f),1f)
-                drawLine(Color.White,Offset(83f,14f),Offset(83f,54f),1f)
-                text(timeFormat.format(date),3f,40f,25f)
+                drawRoundRect(Color.White,Offset(0f,0f),Size(128f,64f),CornerRadius(4f),style=Stroke(1f))
+                text(dateFormat.format(date),5f,9f,7f)
+                drawLine(Color.White,Offset(3f,12f),Offset(125f,12f),1f)
+                drawLine(Color.White,Offset(85f,16f),Offset(85f,53f),1f)
+                drawLine(Color.White,Offset(3f,55f),Offset(125f,55f),1f)
+                text(timeFormat.format(date),4f,40f,24f)
+                val second=(epoch/1000%60).toInt()
+                for(i in 0..11) drawRect(Color.White,Offset(7f+i*6,43f),Size(if(i<=second/5)3f else 1f,1f))
+                drawCircle(Color.White,3f,Offset(105f,6f))
+                drawCircle(Color.Black,3f,Offset(107f,5f))
+                for(i in 0..2) drawRect(Color.White,Offset(115f+i*3,9f-(i+1)*2),Size(2f,(i+1)*2f))
                 val weather = panel?.optJSONObject("weather")
-                text("WEATHER",87f,24f,6f)
-                text(if(weather==null) "--" else java.lang.String.format(java.util.Locale.ROOT,"%.1fC",weather.optDouble("temperature")),87f,37f,7f)
-                text(if(weather==null) "--" else "RH ${weather.optInt("humidity")}%",87f,49f,6f)
-                text(panel?.optString("city", "Set city")?.take(18).orEmpty().ifBlank { "Set city" },4f,51f,6f)
-                text("RESTING  zzz",30f,61f,6f)
+                if(weather!=null) {
+                    val code=weather.optInt("code",-1)
+                    if(code in 0..1) {
+                        drawCircle(Color.White,5f,Offset(106f,22f),style=Stroke(1f))
+                        drawLine(Color.White,Offset(106f,14f),Offset(106f,16f),1f)
+                        drawLine(Color.White,Offset(106f,28f),Offset(106f,30f),1f)
+                        drawLine(Color.White,Offset(98f,22f),Offset(100f,22f),1f)
+                        drawLine(Color.White,Offset(112f,22f),Offset(114f,22f),1f)
+                    } else {
+                        drawCircle(Color.White,4f,Offset(101f,23f),style=Stroke(1f))
+                        drawCircle(Color.White,5f,Offset(108f,21f),style=Stroke(1f))
+                        drawLine(Color.White,Offset(97f,27f),Offset(114f,27f),1f)
+                        if(code>=51) {
+                            drawLine(Color.White,Offset(101f,29f),Offset(100f,32f),1f)
+                            drawLine(Color.White,Offset(110f,29f),Offset(109f,32f),1f)
+                        }
+                    }
+                    text(java.lang.String.format(java.util.Locale.ROOT,"%.1fC",weather.optDouble("temperature")),89f,42f,7f)
+                    text("RH ${weather.optInt("humidity")}%",89f,52f,6f)
+                } else { text("--",98f,30f,8f); text("NO DATA",90f,44f,6f) }
+                text(panel?.optString("city", "Set city")?.take(19).orEmpty().ifBlank { "Set city" },5f,52f,6f)
+                val alarmRemaining=((panel?.optLong("alarm_remaining_ms",-1)?:-1)-elapsed).coerceAtLeast(-1)
+                if(!panel?.optString("alarm_id").isNullOrEmpty() && alarmRemaining>=0) {
+                    text(java.lang.String.format(java.util.Locale.ROOT,"ALARM IN %02d:%02d",alarmRemaining/3600000,alarmRemaining/60000%60),5f,62f,6f)
+                } else {
+                    text("REST MODE",5f,62f,6f)
+                    for(i in 0..2) drawCircle(Color.White,if((epoch/1200%3).toInt()==i)1.3f else .5f,Offset(108f+i*6,60f))
+                }
             }
         }
     }
