@@ -2,8 +2,8 @@ package com.qzainsami.edith
 
 import android.os.SystemClock
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -14,17 +14,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -48,7 +48,7 @@ fun CompanionHeader(model: EdithViewModel) {
         !loaded -> "Not loaded"
         else -> "Online"
     }
-    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             HealthLight("Backend", if(backendOnline) "Online" else "Offline", backendOnline, Modifier.weight(1f))
             HealthLight("Model", modelLabel, modelOnline, Modifier.weight(1f))
@@ -67,27 +67,62 @@ fun CompanionHeader(model: EdithViewModel) {
         var tick by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
         val received = remember(panel) { SystemClock.elapsedRealtime() }
         LaunchedEffect(Unit) { while(true) { tick = SystemClock.elapsedRealtime(); delay(100) } }
-        val alarmMs=panel?.optLong("alarm_remaining_ms",-1)?:-1
-        val alarmDue=alarmMs>=0 && alarmMs<=tick-received
-        val stopwatch=requestedMode=="stopwatch"
+        val alarmMs = panel?.optLong("alarm_remaining_ms", -1) ?: -1
+        val alarmDue = alarmMs >= 0 && alarmMs <= tick - received
+        val stopwatch = requestedMode == "stopwatch"
         val speaking = espOnline && !dashboard && !timer && !stopwatch && !alarmDue &&
             (panel?.optLong("speech_remaining_ms", 0) ?: 0) > tick - received
-        Row(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(EdithPanel,Color(0xFF142F36))), RoundedCornerShape(20.dp))
-            .border(1.dp,EdithLine,RoundedCornerShape(20.dp)).padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            if(espOnline && (timer || dashboard || stopwatch || alarmDue)) DashboardPreview(panel, timer, tick - received,stopwatch,alarmDue)
-            else OledFace(mood, espOnline, speaking, tick)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("LIVE DISPLAY",fontFamily=FontFamily.Monospace,fontSize=10.sp,letterSpacing=1.sp,color=EdithCyan)
-                Text(when { !espOnline -> "Unavailable"; alarmDue->"Alarm"; timer -> "Timer"; stopwatch->"Stopwatch"; dashboard -> "Sleep dashboard"; else -> mood.replaceFirstChar { it.uppercase() } },
-                    color = if(espOnline) MaterialTheme.colorScheme.primary else Color(0xFFFF8585), fontSize = 15.sp,fontWeight=FontWeight.SemiBold)
-                Text(when {
-                    !espOnline -> "Waiting for ESP32"
-                    syncing -> "Syncing with OLED…"
-                    timer || dashboard || stopwatch || alarmDue -> "Display preview"
-                    speaking -> "Speaking animation"
-                    else -> "Reported expression"
-                }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val colors = EdithTheme.colors
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(listOf(colors.liveDisplayGradientStart, colors.liveDisplayGradientEnd)),
+                    RoundedCornerShape(18.dp)
+                )
+                .border(1.dp, colors.border, RoundedCornerShape(18.dp))
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            if(espOnline && (timer || dashboard || stopwatch || alarmDue)) {
+                DashboardPreview(panel, timer, tick - received, stopwatch, alarmDue)
+            } else {
+                OledFace(mood, espOnline, speaking, tick)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    "LIVE DISPLAY",
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 9.sp,
+                    letterSpacing = 1.sp,
+                    color = colors.secondary
+                )
+                Text(
+                    when {
+                        !espOnline -> "Unavailable"
+                        alarmDue -> "Alarm"
+                        timer -> "Timer"
+                        stopwatch -> "Stopwatch"
+                        dashboard -> "Sleep dashboard"
+                        else -> mood.replaceFirstChar { it.uppercase() }
+                    },
+                    color = if(espOnline) colors.primary else colors.statusOffline,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    when {
+                        !espOnline -> "Waiting for ESP32"
+                        syncing -> "Syncing with OLED…"
+                        timer || dashboard || stopwatch || alarmDue -> "Display preview"
+                        speaking -> "Speaking animation"
+                        else -> "Reported expression"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.textSecondary
+                )
             }
         }
     }
@@ -96,97 +131,101 @@ fun CompanionHeader(model: EdithViewModel) {
 @Composable
 private fun DashboardPreview(panel: JSONObject?, timer: Boolean, elapsed: Long, stopwatch: Boolean, alarmDue: Boolean) {
     val initialRemaining = remember(panel?.optString("timer_id")) {
-        (panel?.optLong("timer_remaining_ms",1) ?: 1).coerceAtLeast(1)
+        (panel?.optLong("timer_remaining_ms", 1) ?: 1).coerceAtLeast(1)
     }
-    Canvas(Modifier.size(128.dp,64.dp).background(Color.Black,RoundedCornerShape(8.dp))
+    Canvas(Modifier.size(128.dp, 64.dp).background(Color.Black, RoundedCornerShape(8.dp))
         .semantics { contentDescription = when{alarmDue->"EDITH alarm preview";timer->"EDITH countdown preview";stopwatch->"EDITH stopwatch preview";else->"EDITH clock and weather dashboard preview"} }) {
-        withTransform({ scale(size.width/128f,size.height/64f,Offset.Zero) }) {
+        withTransform({ scale(size.width / 128f, size.height / 64f, Offset.Zero) }) {
             val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
                 color = android.graphics.Color.WHITE
                 typeface = android.graphics.Typeface.MONOSPACE
             }
             fun text(value: String, x: Float, y: Float, font: Float) {
                 paint.textSize = font
-                drawContext.canvas.nativeCanvas.drawText(value,x,y,paint)
+                drawContext.canvas.nativeCanvas.drawText(value, x, y, paint)
             }
             if(alarmDue) {
-                drawRoundRect(Color.White,Offset(3f,3f),Size(122f,58f),CornerRadius(7f),style=Stroke(1f))
-                text("ALARM",44f,17f,9f)
-                drawCircle(Color.White,9f,Offset(64f,32f),style=Stroke(1.5f))
-                drawLine(Color.White,Offset(64f,26f),Offset(64f,33f),1.5f)
-                drawLine(Color.White,Offset(64f,33f),Offset(70f,35f),1.5f)
-                text("DISMISS IN THE APP",12f,56f,6f)
+                drawRoundRect(Color.White, Offset(3f, 3f), Size(122f, 58f), CornerRadius(7f), style = Stroke(1f))
+                text("ALARM", 44f, 17f, 9f)
+                drawCircle(Color.White, 9f, Offset(64f, 32f), style = Stroke(1.5f))
+                drawLine(Color.White, Offset(64f, 26f), Offset(64f, 33f), 1.5f)
+                drawLine(Color.White, Offset(64f, 33f), Offset(70f, 35f), 1.5f)
+                text("DISMISS IN THE APP", 12f, 56f, 6f)
             } else if(stopwatch && !timer) {
-                val running=panel?.optBoolean("stopwatch_running")==true
-                val ms=((panel?.optLong("stopwatch_elapsed_ms",0)?:0)+if(running)elapsed else 0).coerceAtMost(359999990)
-                val seconds=ms/1000
-                val value=if(seconds>=3600) java.lang.String.format(java.util.Locale.ROOT,"%02d:%02d:%02d",seconds/3600,seconds/60%60,seconds%60)
-                    else java.lang.String.format(java.util.Locale.ROOT,"%02d:%02d",seconds/60,seconds%60)
-                text("STOPWATCH",36f,11f,7f)
-                val font=if(seconds>=3600)20f else 29f
-                paint.textSize=font;text(value,(128-paint.measureText(value))/2,39f,font)
-                text(java.lang.String.format(java.util.Locale.ROOT,".%02d",ms/10%100),56f,49f,8f)
-                drawLine(Color.White,Offset(15f,54f),Offset(113f,54f),1f)
-                text(if(running)"RUNNING" else "PAUSED",44f,63f,6f)
+                val running = panel?.optBoolean("stopwatch_running") == true
+                val ms = ((panel?.optLong("stopwatch_elapsed_ms", 0) ?: 0) + if(running) elapsed else 0).coerceAtMost(359999990)
+                val seconds = ms / 1000
+                val value = if(seconds >= 3600) java.lang.String.format(java.util.Locale.ROOT, "%02d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
+                    else java.lang.String.format(java.util.Locale.ROOT, "%02d:%02d", seconds / 60, seconds % 60)
+                text("STOPWATCH", 36f, 11f, 7f)
+                val font = if(seconds >= 3600) 20f else 29f
+                paint.textSize = font
+                text(value, (128 - paint.measureText(value)) / 2, 39f, font)
+                text(java.lang.String.format(java.util.Locale.ROOT, ".%02d", ms / 10 % 100), 56f, 49f, 8f)
+                drawLine(Color.White, Offset(15f, 54f), Offset(113f, 54f), 1f)
+                text(if(running) "RUNNING" else "PAUSED", 44f, 63f, 6f)
             } else if(timer) {
-                val remaining = ((panel?.optLong("timer_remaining_ms",0) ?: 0)-elapsed).coerceAtLeast(0)
-                val seconds = (remaining+999)/1000
-                val value = if(seconds >= 3600) java.lang.String.format(java.util.Locale.ROOT,"%02d:%02d:%02d",seconds/3600,seconds/60%60,seconds%60)
-                    else java.lang.String.format(java.util.Locale.ROOT,"%02d:%02d",seconds/60,seconds%60)
+                val remaining = ((panel?.optLong("timer_remaining_ms", 0) ?: 0) - elapsed).coerceAtLeast(0)
+                val seconds = (remaining + 999) / 1000
+                val value = if(seconds >= 3600) java.lang.String.format(java.util.Locale.ROOT, "%02d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
+                    else java.lang.String.format(java.util.Locale.ROOT, "%02d:%02d", seconds / 60, seconds % 60)
                 val title = if(remaining == 0L) "TIME UP" else "FOCUS TIMER"
                 paint.textSize = 7f
-                text(title,(128-paint.measureText(title))/2,12f,7f)
-                val font = if(seconds>=3600) 20f else 29f
+                text(title, (128 - paint.measureText(title)) / 2, 12f, 7f)
+                val font = if(seconds >= 3600) 20f else 29f
                 paint.textSize = font
-                text(value,(128-paint.measureText(value))/2,43f,font)
-                drawRoundRect(Color.White,Offset(14f,53f),Size(100f,5f),CornerRadius(2f),style=Stroke(1f))
-                val width = (98f*remaining/initialRemaining.toFloat()).coerceIn(0f,98f)
-                if(width>0) drawRect(Color.White,Offset(15f,54f),Size(width,3f))
+                text(value, (128 - paint.measureText(value)) / 2, 43f, font)
+                drawRoundRect(Color.White, Offset(14f, 53f), Size(100f, 5f), CornerRadius(2f), style = Stroke(1f))
+                val width = (98f * remaining / initialRemaining.toFloat()).coerceIn(0f, 98f)
+                if(width > 0) drawRect(Color.White, Offset(15f, 54f), Size(width, 3f))
             } else {
-                val zone = java.util.SimpleTimeZone((panel?.optInt("utc_offset",0) ?: 0)*60000,"EDITH")
-                val epoch = ((panel?.optLong("now",0) ?: 0)*1000)+elapsed
+                val zone = java.util.SimpleTimeZone((panel?.optInt("utc_offset", 0) ?: 0) * 60000, "EDITH")
+                val epoch = ((panel?.optLong("now", 0) ?: 0) * 1000) + elapsed
                 val date = java.util.Date(epoch)
-                val dateFormat = java.text.SimpleDateFormat("EEE dd MMM",java.util.Locale.ENGLISH).apply { timeZone=zone }
-                val timeFormat = java.text.SimpleDateFormat("HH:mm",java.util.Locale.ROOT).apply { timeZone=zone }
-                drawRoundRect(Color.White,Offset(0f,0f),Size(128f,64f),CornerRadius(4f),style=Stroke(1f))
-                text(dateFormat.format(date),5f,9f,7f)
-                drawLine(Color.White,Offset(3f,12f),Offset(125f,12f),1f)
-                drawLine(Color.White,Offset(85f,16f),Offset(85f,53f),1f)
-                drawLine(Color.White,Offset(3f,55f),Offset(125f,55f),1f)
-                text(timeFormat.format(date),4f,40f,24f)
-                val second=(epoch/1000%60).toInt()
-                for(i in 0..11) drawRect(Color.White,Offset(7f+i*6,43f),Size(if(i<=second/5)3f else 1f,1f))
-                drawCircle(Color.White,3f,Offset(105f,6f))
-                drawCircle(Color.Black,3f,Offset(107f,5f))
-                for(i in 0..2) drawRect(Color.White,Offset(115f+i*3,9f-(i+1)*2),Size(2f,(i+1)*2f))
+                val dateFormat = java.text.SimpleDateFormat("EEE dd MMM", java.util.Locale.ENGLISH).apply { timeZone = zone }
+                val timeFormat = java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT).apply { timeZone = zone }
+                drawRoundRect(Color.White, Offset(0f, 0f), Size(128f, 64f), CornerRadius(4f), style = Stroke(1f))
+                text(dateFormat.format(date), 5f, 9f, 7f)
+                drawLine(Color.White, Offset(3f, 12f), Offset(125f, 12f), 1f)
+                drawLine(Color.White, Offset(85f, 16f), Offset(85f, 53f), 1f)
+                drawLine(Color.White, Offset(3f, 55f), Offset(125f, 55f), 1f)
+                text(timeFormat.format(date), 4f, 40f, 24f)
+                val second = (epoch / 1000 % 60).toInt()
+                for(i in 0..11) drawRect(Color.White, Offset(7f + i * 6, 43f), Size(if(i <= second / 5) 3f else 1f, 1f))
+                drawCircle(Color.White, 3f, Offset(105f, 6f))
+                drawCircle(Color.Black, 3f, Offset(107f, 5f))
+                for(i in 0..2) drawRect(Color.White, Offset(115f + i * 3, 9f - (i + 1) * 2), Size(2f, (i + 1) * 2f))
                 val weather = panel?.optJSONObject("weather")
-                if(weather!=null) {
-                    val code=weather.optInt("code",-1)
+                if(weather != null) {
+                    val code = weather.optInt("code", -1)
                     if(code in 0..1) {
-                        drawCircle(Color.White,5f,Offset(106f,22f),style=Stroke(1f))
-                        drawLine(Color.White,Offset(106f,14f),Offset(106f,16f),1f)
-                        drawLine(Color.White,Offset(106f,28f),Offset(106f,30f),1f)
-                        drawLine(Color.White,Offset(98f,22f),Offset(100f,22f),1f)
-                        drawLine(Color.White,Offset(112f,22f),Offset(114f,22f),1f)
+                        drawCircle(Color.White, 5f, Offset(106f, 22f), style = Stroke(1f))
+                        drawLine(Color.White, Offset(106f, 14f), Offset(106f, 16f), 1f)
+                        drawLine(Color.White, Offset(106f, 28f), Offset(106f, 30f), 1f)
+                        drawLine(Color.White, Offset(98f, 22f), Offset(100f, 22f), 1f)
+                        drawLine(Color.White, Offset(112f, 22f), Offset(114f, 22f), 1f)
                     } else {
-                        drawCircle(Color.White,4f,Offset(101f,23f),style=Stroke(1f))
-                        drawCircle(Color.White,5f,Offset(108f,21f),style=Stroke(1f))
-                        drawLine(Color.White,Offset(97f,27f),Offset(114f,27f),1f)
-                        if(code>=51) {
-                            drawLine(Color.White,Offset(101f,29f),Offset(100f,32f),1f)
-                            drawLine(Color.White,Offset(110f,29f),Offset(109f,32f),1f)
+                        drawCircle(Color.White, 4f, Offset(101f, 23f), style = Stroke(1f))
+                        drawCircle(Color.White, 5f, Offset(108f, 21f), style = Stroke(1f))
+                        drawLine(Color.White, Offset(97f, 27f), Offset(114f, 27f), 1f)
+                        if(code >= 51) {
+                            drawLine(Color.White, Offset(101f, 29f), Offset(100f, 32f), 1f)
+                            drawLine(Color.White, Offset(110f, 29f), Offset(109f, 32f), 1f)
                         }
                     }
-                    text(java.lang.String.format(java.util.Locale.ROOT,"%.1fC",weather.optDouble("temperature")),89f,42f,7f)
-                    text("RH ${weather.optInt("humidity")}%",89f,52f,6f)
-                } else { text("--",98f,30f,8f); text("NO DATA",90f,44f,6f) }
-                text(panel?.optString("city", "Set city")?.take(19).orEmpty().ifBlank { "Set city" },5f,52f,6f)
-                val alarmRemaining=((panel?.optLong("alarm_remaining_ms",-1)?:-1)-elapsed).coerceAtLeast(-1)
-                if(!panel?.optString("alarm_id").isNullOrEmpty() && alarmRemaining>=0) {
-                    text(java.lang.String.format(java.util.Locale.ROOT,"ALARM IN %02d:%02d",alarmRemaining/3600000,alarmRemaining/60000%60),5f,62f,6f)
+                    text(java.lang.String.format(java.util.Locale.ROOT, "%.1fC", weather.optDouble("temperature")), 89f, 42f, 7f)
+                    text("RH ${weather.optInt("humidity")}%", 89f, 52f, 6f)
                 } else {
-                    text("REST MODE",5f,62f,6f)
-                    for(i in 0..2) drawCircle(Color.White,if((epoch/1200%3).toInt()==i)1.3f else .5f,Offset(108f+i*6,60f))
+                    text("--", 98f, 30f, 8f)
+                    text("NO DATA", 90f, 44f, 6f)
+                }
+                text(panel?.optString("city", "Set city")?.take(19).orEmpty().ifBlank { "Set city" }, 5f, 52f, 6f)
+                val alarmRemaining = ((panel?.optLong("alarm_remaining_ms", -1) ?: -1) - elapsed).coerceAtLeast(-1)
+                if(!panel?.optString("alarm_id").isNullOrEmpty() && alarmRemaining >= 0) {
+                    text(java.lang.String.format(java.util.Locale.ROOT, "ALARM IN %02d:%02d", alarmRemaining / 3600000, alarmRemaining / 60000 % 60), 5f, 62f, 6f)
+                } else {
+                    text("REST MODE", 5f, 62f, 6f)
+                    for(i in 0..2) drawCircle(Color.White, if((epoch / 1200 % 3).toInt() == i) 1.3f else 0.5f, Offset(108f + i * 6, 60f))
                 }
             }
         }
@@ -195,10 +234,15 @@ private fun DashboardPreview(panel: JSONObject?, timer: Boolean, elapsed: Long, 
 
 @Composable
 private fun HealthLight(name: String, state: String, online: Boolean, modifier: Modifier) {
-    val color = if(online) Color(0xFFC9F575) else Color(0xFFFF8585)
-    Column(modifier.background(color.copy(alpha=.055f),RoundedCornerShape(12.dp))
-        .border(1.dp,color.copy(alpha=.2f),RoundedCornerShape(12.dp)).padding(8.dp)) {
-        Text(name.uppercase(),fontFamily=FontFamily.Monospace,fontSize=10.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+    val colors = EdithTheme.colors
+    val color = if(online) colors.statusOnline else colors.statusOffline
+    Column(
+        modifier
+            .background(color.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .border(1.dp, color.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+    ) {
+        Text(name.uppercase(), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = colors.textSecondary)
         Text("● $state", color = color, style = MaterialTheme.typography.labelSmall, maxLines = 1)
     }
 }
@@ -207,90 +251,91 @@ private fun HealthLight(name: String, state: String, online: Boolean, modifier: 
 @Composable
 private fun OledFace(mood: String, online: Boolean, speaking: Boolean, tick: Long) {
     val description = if(online) "EDITH $mood face${if(speaking) ", speaking" else ""}" else "EDITH face unavailable"
+    val colors = EdithTheme.colors
     Canvas(Modifier.size(128.dp, 64.dp).background(Color.Black, RoundedCornerShape(8.dp))
         .semantics { contentDescription = description }) {
         withTransform({ scale(size.width / 128f, size.height / 64f, Offset.Zero) }) {
-            val ink = if(online) Color.White else Color(0xFF616B78)
+            val ink = if(online) Color.White else colors.textSecondary
             if(!online) {
-                drawLine(ink, Offset(28f,32f), Offset(47f,32f), 3f)
-                drawLine(ink, Offset(81f,32f), Offset(100f,32f), 3f)
+                drawLine(ink, Offset(28f, 32f), Offset(47f, 32f), 3f)
+                drawLine(ink, Offset(81f, 32f), Offset(100f, 32f), 3f)
                 return@withTransform
             }
             val blink = mood in listOf("normal", "curious") && tick % 4500 < 130
             fun eye(x: Float, y: Float = 13f, w: Float = 30f, h: Float = 29f) {
-                drawRoundRect(ink, Offset(x,y), Size(w,h), CornerRadius(8f,8f))
+                drawRoundRect(ink, Offset(x, y), Size(w, h), CornerRadius(8f, 8f))
             }
             if(blink) {
-                drawLine(ink, Offset(22f,30f),Offset(50f,30f),4f)
-                drawLine(ink, Offset(78f,30f),Offset(106f,30f),4f)
+                drawLine(ink, Offset(22f, 30f), Offset(50f, 30f), 4f)
+                drawLine(ink, Offset(78f, 30f), Offset(106f, 30f), 4f)
             } else when(mood) {
                 "sleepy" -> {
-                    eye(27f,43f,26f,8f); eye(75f,43f,26f,8f)
+                    eye(27f, 43f, 26f, 8f); eye(75f, 43f, 26f, 8f)
                     for(i in 0..2) {
-                        val x = 104f+i*5; val y = 27f-i*8
-                        linePath(ink, listOf(Offset(x,y),Offset(x+4,y),Offset(x,y+4),Offset(x+4,y+4)),1.3f)
+                        val x = 104f + i * 5; val y = 27f - i * 8
+                        linePath(ink, listOf(Offset(x, y), Offset(x + 4, y), Offset(x, y + 4), Offset(x + 4, y + 4)), 1.3f)
                     }
                 }
                 "shy", "blush" -> {
-                    for(x in listOf(25f,81f)) {
-                        val p = Path().apply { moveTo(x,27f); quadraticTo(x+11,43f,x+22,27f) }
-                        drawPath(p,ink,style=Stroke(3f))
+                    for(x in listOf(25f, 81f)) {
+                        val p = Path().apply { moveTo(x, 27f); quadraticTo(x + 11, 43f, x + 22, 27f) }
+                        drawPath(p, ink, style = Stroke(3f))
                     }
                 }
                 "unknown" -> {
-                    eye(23f,26f,27f,11f); eye(78f,26f,27f,11f)
-                    drawLine(Color.Black,Offset(20f,23f),Offset(53f,29f),5f)
-                    drawLine(Color.Black,Offset(75f,29f),Offset(108f,23f),5f)
+                    eye(23f, 26f, 27f, 11f); eye(78f, 26f, 27f, 11f)
+                    drawLine(Color.Black, Offset(20f, 23f), Offset(53f, 29f), 5f)
+                    drawLine(Color.Black, Offset(75f, 29f), Offset(108f, 23f), 5f)
                 }
                 "happy", "uwu" -> {
-                    for(x in listOf(23f,79f)) {
-                        val path = Path().apply { moveTo(x,33f); quadraticTo(x+14,8f,x+28,33f) }
-                        drawPath(path,ink,style=Stroke(4f))
+                    for(x in listOf(23f, 79f)) {
+                        val path = Path().apply { moveTo(x, 33f); quadraticTo(x + 14, 8f, x + 28, 33f) }
+                        drawPath(path, ink, style = Stroke(4f))
                     }
                 }
                 "sad" -> {
-                    for(x in listOf(22f,78f)) {
-                        val path = Path().apply { moveTo(x,29f); quadraticTo(x+14,44f,x+28,29f) }
-                        drawPath(path,ink,style=Stroke(4f))
+                    for(x in listOf(22f, 78f)) {
+                        val path = Path().apply { moveTo(x, 29f); quadraticTo(x + 14, 44f, x + 28, 29f) }
+                        drawPath(path, ink, style = Stroke(4f))
                     }
                 }
                 "angry" -> {
-                    eye(22f,22f,28f,21f); eye(78f,22f,28f,21f)
-                    drawLine(Color.Black,Offset(19f,19f),Offset(53f,29f),11f)
-                    drawLine(Color.Black,Offset(75f,29f),Offset(109f,19f),11f)
+                    eye(22f, 22f, 28f, 21f); eye(78f, 22f, 28f, 21f)
+                    drawLine(Color.Black, Offset(19f, 19f), Offset(53f, 29f), 11f)
+                    drawLine(Color.Black, Offset(75f, 29f), Offset(109f, 19f), 11f)
                 }
-                "curious" -> { eye(21f,10f,31f,35f); eye(82f,22f,21f,22f) }
+                "curious" -> { eye(21f, 10f, 31f, 35f); eye(82f, 22f, 21f, 22f) }
                 "thinking" -> {
                     eye(22f); eye(78f)
-                    drawCircle(Color.Black,5f,Offset(43f,28f)); drawCircle(Color.Black,5f,Offset(99f,28f))
+                    drawCircle(Color.Black, 5f, Offset(43f, 28f)); drawCircle(Color.Black, 5f, Offset(99f, 28f))
                 }
                 else -> { eye(22f); eye(78f) }
             }
             if (mood in listOf("shy", "blush", "unknown")) {
-                for (x in listOf(19f,91f)) for(i in 0..2) {
-                    drawLine(ink,Offset(x+i*5,44f),Offset(x+i*5-2,49f),1.5f)
+                for (x in listOf(19f, 91f)) for(i in 0..2) {
+                    drawLine(ink, Offset(x + i * 5, 44f), Offset(x + i * 5 - 2, 49f), 1.5f)
                 }
             }
             when {
                 mood == "unknown" && !speaking -> {
-                    val p = Path().apply { moveTo(57f,52f); quadraticTo(65f,59f,73f,49f) }
-                    drawPath(p,ink,style=Stroke(2f))
+                    val p = Path().apply { moveTo(57f, 52f); quadraticTo(65f, 59f, 73f, 49f) }
+                    drawPath(p, ink, style = Stroke(2f))
                 }
-                mood == "shy" && !speaking -> drawCircle(ink,2f,Offset(64f,53f))
+                mood == "shy" && !speaking -> drawCircle(ink, 2f, Offset(64f, 53f))
                 speaking -> {
-                    val h = listOf(3f,7f,4f,9f,3f,6f)[((tick/110)%6).toInt()]
-                    drawRoundRect(ink,Offset(56f,52f-h/2),Size(16f,h),CornerRadius(3f,3f),style=Stroke(2f))
+                    val h = listOf(3f, 7f, 4f, 9f, 3f, 6f)[((tick / 110) % 6).toInt()]
+                    drawRoundRect(ink, Offset(56f, 52f - h / 2), Size(16f, h), CornerRadius(3f, 3f), style = Stroke(2f))
                 }
-                mood in listOf("uwu", "blush") -> linePath(ink,listOf(Offset(55f,49f),Offset(59f,55f),Offset(64f,50f),Offset(69f,55f),Offset(73f,49f)),2f)
+                mood in listOf("uwu", "blush") -> linePath(ink, listOf(Offset(55f, 49f), Offset(59f, 55f), Offset(64f, 50f), Offset(69f, 55f), Offset(73f, 49f)), 2f)
                 mood == "sad" || mood == "angry" -> {
-                    val p = Path().apply { moveTo(56f,55f); quadraticTo(64f,47f,72f,55f) }
-                    drawPath(p,ink,style=Stroke(2f))
+                    val p = Path().apply { moveTo(56f, 55f); quadraticTo(64f, 47f, 72f, 55f) }
+                    drawPath(p, ink, style = Stroke(2f))
                 }
-                mood == "thinking" -> drawLine(ink,Offset(58f,52f),Offset(70f,52f),2f)
-                mood == "curious" -> drawCircle(ink,4f,Offset(64f,52f),style=Stroke(2f))
+                mood == "thinking" -> drawLine(ink, Offset(58f, 52f), Offset(70f, 52f), 2f)
+                mood == "curious" -> drawCircle(ink, 4f, Offset(64f, 52f), style = Stroke(2f))
                 else -> {
-                    val p = Path().apply { moveTo(56f,52f); quadraticTo(64f,59f,72f,52f) }
-                    drawPath(p,ink,style=Stroke(2f))
+                    val p = Path().apply { moveTo(56f, 52f); quadraticTo(64f, 59f, 72f, 52f) }
+                    drawPath(p, ink, style = Stroke(2f))
                 }
             }
         }
@@ -298,6 +343,6 @@ private fun OledFace(mood: String, online: Boolean, speaking: Boolean, tick: Lon
 }
 
 private fun DrawScope.linePath(ink: Color, points: List<Offset>, width: Float) {
-    val p = Path().apply { moveTo(points[0].x,points[0].y); points.drop(1).forEach { lineTo(it.x,it.y) } }
-    drawPath(p,ink,style=Stroke(width))
+    val p = Path().apply { moveTo(points[0].x, points[0].y); points.drop(1).forEach { lineTo(it.x, it.y) } }
+    drawPath(p, ink, style = Stroke(width))
 }

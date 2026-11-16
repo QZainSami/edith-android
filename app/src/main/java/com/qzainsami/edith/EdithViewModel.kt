@@ -14,6 +14,7 @@ data class City(val name: String, val latitude: Double, val longitude: Double)
 
 class EdithViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("connection", 0)
+    private val themePrefs = application.getSharedPreferences("theme_prefs", 0)
     private val credentials = CredentialStore(application)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var refreshJob: Job? = null
@@ -21,6 +22,12 @@ class EdithViewModel(application: Application) : AndroidViewModel(application) {
     private var modelJob: Job? = null
     private var modelCheckedAt = 0L
     private var statusSequence = 0L
+
+    var currentTheme by mutableStateOf(
+        AppTheme.values().firstOrNull { it.id == themePrefs.getString("theme", AppTheme.DRACULA.id) } ?: AppTheme.DRACULA
+    )
+        private set
+
     var previewMood by mutableStateOf<String?>(null)
         private set
     var previewMode by mutableStateOf<String?>(null)
@@ -51,13 +58,18 @@ class EdithViewModel(application: Application) : AndroidViewModel(application) {
 
     init { if (prefs.contains("address")) refresh() }
 
+    fun setTheme(theme: AppTheme) {
+        currentTheme = theme
+        themePrefs.edit().putString("theme", theme.id).apply()
+    }
+
     private fun connection() = Connection(address, username, password)
     private fun offset() = TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 60000
     private suspend fun call(config: Connection, path: String, body: JSONObject? = null): JSONObject {
         val host = runCatching { java.net.URI(config.base).host.orEmpty() }.getOrDefault("")
         if (android.os.Build.VERSION.SDK_INT >= 37 && EdithApi.isLocalAddress(host) &&
             getApplication<Application>().checkSelfPermission("android.permission.ACCESS_LOCAL_NETWORK") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            error("Allow local network access in the app’s Settings tab before connecting to your PC.")
+            error("Allow local network access in the app's Settings tab before connecting to your PC.")
         }
         return withContext(Dispatchers.IO) { EdithApi.request(config, path, body) }
     }
@@ -101,11 +113,11 @@ class EdithViewModel(application: Application) : AndroidViewModel(application) {
     }
     fun refresh() = refreshStatus(false)
     private fun refreshStatus(automatic: Boolean) {
-        if ((!automatic && busy) || refreshing) return
+        if ((!automatic && busy) || (!automatic && refreshing)) return
         val config = connection()
         val version = refreshVersion
+        if (!automatic) refreshing = true
         refreshJob = scope.launch {
-            refreshing = true
             try {
                 readStatus(config)
                 error = null
@@ -122,11 +134,12 @@ class EdithViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (exc: CancellationException) { throw exc }
             catch (exc: Exception) { if(version == refreshVersion) { error = message(exc); status = null; modelStatus = null } }
-            finally { if(version == refreshVersion) refreshing = false }
+            finally { if(version == refreshVersion && !automatic) refreshing = false }
         }
     }
     // Automatic checks resume after a successful manual connection and pause on failure.
-    fun autoRefresh() { if(status != null) refreshStatus(true) }
+    // Background polling does not set `refreshing = true`, preventing button flickering.
+    fun autoRefresh() { if(status != null && !busy && !refreshing) refreshStatus(true) }
     private fun action(block: suspend (Connection) -> Unit) {
         if (busy) return
         refreshVersion++
@@ -147,7 +160,7 @@ class EdithViewModel(application: Application) : AndroidViewModel(application) {
     }
     fun send(text: String) {
         val clean = text.trim()
-        if (clean.isEmpty() || clean.length > 2000) { error = "Enter 1–2000 characters."; return }
+        if (clean.isEmpty() || clean.length > 2000) { error = "Enter 1-2000 characters."; return }
         action { config ->
             val history = JSONArray()
             chat.takeLast(12).forEach { history.put(JSONObject().put("role", if(it.user) "user" else "assistant").put("content", it.text)) }
