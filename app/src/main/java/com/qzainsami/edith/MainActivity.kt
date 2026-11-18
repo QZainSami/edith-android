@@ -663,12 +663,28 @@ private fun SettingsScreen(model: EdithViewModel) {
                 )
 
                 // Quick Presets Row
+                Text("Presets:", fontSize = 10.sp, color = colors.textSecondary)
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Presets:", fontSize = 10.sp, color = colors.textSecondary)
+                    SuggestionChip(
+                        onClick = { address = "http://192.168.137.1:8000" },
+                        label = { Text("Laptop Hotspot", fontSize = 10.sp) },
+                        modifier = Modifier.height(28.dp)
+                    )
+                    SuggestionChip(
+                        onClick = { address = "http://192.168.43.100:8000" },
+                        label = { Text("Phone Hotspot", fontSize = 10.sp) },
+                        modifier = Modifier.height(28.dp)
+                    )
+                }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     SuggestionChip(
                         onClick = { address = "http://10.0.2.2:8000" },
                         label = { Text("Emulator (10.0.2.2)", fontSize = 10.sp) },
@@ -786,8 +802,8 @@ private fun SettingsScreen(model: EdithViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Emulator", fontWeight = FontWeight.Medium, fontSize = 11.sp, color = colors.textPrimary)
-                        Text("http://10.0.2.2:8000", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = colors.primary)
+                        Text("Laptop Hotspot", fontWeight = FontWeight.Medium, fontSize = 11.sp, color = colors.textPrimary)
+                        Text("http://192.168.137.1:8000", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = colors.primary)
                     }
                     HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.5.dp)
                     Row(
@@ -795,13 +811,31 @@ private fun SettingsScreen(model: EdithViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Phone (Wi-Fi)", fontWeight = FontWeight.Medium, fontSize = 11.sp, color = colors.textPrimary)
+                        Text("Phone Hotspot", fontWeight = FontWeight.Medium, fontSize = 11.sp, color = colors.textPrimary)
+                        Text("http://192.168.43.100:8000", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = colors.primary)
+                    }
+                    HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.5.dp)
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Home Wi-Fi", fontWeight = FontWeight.Medium, fontSize = 11.sp, color = colors.textPrimary)
                         Text("http://<PC-LAN-IP>:8000", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = colors.primary)
+                    }
+                    HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.5.dp)
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Emulator", fontWeight = FontWeight.Medium, fontSize = 11.sp, color = colors.textPrimary)
+                        Text("http://10.0.2.2:8000", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = colors.primary)
                     }
                 }
 
                 Text(
-                    "Start backend with 0.0.0.0:8000. Keep PC awake with backend & LM Studio running.",
+                    "Start backend with 0.0.0.0:8000. Windows Mobile Hotspot IP is always 192.168.137.1.",
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 10.sp,
                     color = colors.textSecondary

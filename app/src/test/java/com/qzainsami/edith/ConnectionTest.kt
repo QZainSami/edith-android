@@ -7,6 +7,8 @@ class ConnectionTest {
     @Test fun emulatorAndPrivateLanAreAcceptedInDebug() {
         assertEquals("http://10.0.2.2:8000", EdithApi.normalizeAddress(" http://10.0.2.2:8000/ "))
         assertEquals("http://192.168.100.108:8000", EdithApi.normalizeAddress("http://192.168.100.108:8000"))
+        assertEquals("http://192.168.137.1:8000", EdithApi.normalizeAddress("http://192.168.137.1:8000"))
+        assertEquals("http://192.168.43.100:8000", EdithApi.normalizeAddress("http://192.168.43.100:8000"))
         assertEquals("https://edith.example.com", EdithApi.normalizeAddress("https://edith.example.com/"))
     }
     @Test fun unsafeAndNonOriginAddressesAreRejected() {

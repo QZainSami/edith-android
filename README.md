@@ -137,11 +137,15 @@ Keep the terminal open. No backend credentials or ESP32 tokens should be added t
 
 Open **Settings** in the app:
 
-| Device | Backend URL |
+| Device / Connection | Backend URL Preset |
 | --- | --- |
-| Emulator on the same computer as the backend | `http://10.0.2.2:8000` |
-| Real phone on the same reachable network | `http://YOUR-COMPUTER-LAN-IP:8000` |
-| Future hosted backend | `https://YOUR-HOST` |
+| Laptop Hotspot (Windows static IP) | `http://192.168.137.1:8000` |
+| Phone Hotspot (Static subnet IP) | `http://192.168.43.100:8000` |
+| Emulator on the same computer as backend | `http://10.0.2.2:8000` |
+| Home Wi-Fi LAN | `http://YOUR-COMPUTER-LAN-IP:8000` |
+| Hosted cloud backend | `https://YOUR-HOST` |
+
+Quick preset chips are built right into the app's **Settings** tab for instant one-tap selection.
 
 Find the computer's LAN IP using `ipconfig` on Windows, or `ip -4 address` and `ip route` on Linux. Addresses may change when switching computers or networks.
 
@@ -246,9 +250,11 @@ uv sync --locked
 uv run python -m uvicorn app:app --host 0.0.0.0 --port 8000 --workers 1
 ```
 
-For a direct connection on the same reachable Wi-Fi/hotspot, use `ip -4 address` / `ip route` on CachyOS, or `ipconfig` on Windows, to find the laptop's Wi-Fi IPv4 address. If it is `192.168.1.50`, enter `http://192.168.1.50:8000` in the app. That is an example, not an address to copy without checking your laptop. Allow the port only on a trusted network.
+For a direct connection without looking up changing IP addresses:
+- **Best: Windows Laptop Hotspot:** Turn on Mobile Hotspot in Windows settings. The laptop address is always **`http://192.168.137.1:8000`**. Connect phone and ESP32 to that hotspot, and tap the **Laptop Hotspot** preset in app Settings.
+- **Phone Hotspot:** Set your laptop's IP manually to **`192.168.43.100`** in Wi-Fi properties, and tap the **Phone Hotspot** preset in app Settings.
 
-If campus Wi-Fi isolates clients, or you want internet access, run cloudflared **on that laptop** in a second terminal:
+If campus Wi-Fi isolates clients and you are not using a hotspot, run cloudflared **on that laptop** in a second terminal:
 
 ```bash
 cloudflared tunnel --url http://127.0.0.1:8000
